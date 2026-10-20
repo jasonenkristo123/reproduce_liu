@@ -50,10 +50,9 @@ class Model_Wrapper(object):
         return self
 
     def load_bert(self, path, max_length, use_cuda, lowercase=True, trust_remote_code=False):
-        self.tokenizer = AutoTokenizer.from_pretrained(path, 
-                use_fast=True, do_lower_case=lowercase)
-        self.encoder = AutoModel.from_pretrained(path, trust_remote_code=trust_remote_code)
-        if use_cuda:
+        self.tokenizer = AutoTokenizer.from_pretrained(path)
+        self.encoder = AutoModel.from_pretrained(path)
+        if use_cuda and torch.cuda.is_available():
             self.encoder = self.encoder.cuda()
 
         return self.encoder, self.tokenizer
@@ -181,7 +180,10 @@ class Model_Wrapper(object):
                         padding="max_length", return_tensors='pt')
                 batch_tokenized_names_cuda = {}
                 for k,v in batch_tokenized_names.items(): 
-                    batch_tokenized_names_cuda[k] = v.cuda()
+                    if torch.cuda.is_available():
+                        batch_tokenized_names_cuda[k] = v.cuda()
+                    else:
+                        batch_tokenized_names_cuda[k] = v
                 
                 last_hidden_state = self.encoder(**batch_tokenized_names_cuda)[0]
                 if agg_mode == "cls":
